@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>S&P 500 Close Price Prediction</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding-bottom: 20px;
+        }
+        .title {
+            font-size: 35px;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 30px;
+            margin-top: 100px;
+        }
+        .search-box {
+            margin: 20px 0;
+        }
+        .date-picker {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #f3ecec;
+            border-radius: 5px;
+        }
+        .model_selection {
+            appearance: none;
+            background-color: white;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 15px;
+            color: #333;
+            cursor: pointer;
+        }
+        .model_selection:hover {
+            background-color: #f0f0f0;
+        }
+        .model_selection:focus {
+            border-color: #2980b9;
+        }
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .plotly-chart{
+            margin-top: 20px;
+            width:700px;
+            height:420px;
+            background-color: white;
+
+            display: grid;
+            place-items: center;
+        }
+        .result{
+            font-size: 21px;
+            color: #575555;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="title">S&P 500 Close Price Prediction</div>
+
+        <div class="search-box">
+            <input type="date" id="date-picker" class="date-picker"/>
+            <select id="model_selection" class="model_selection">
+                <option value="LSTM">LSTM</option>
+                <option value="RNN">RNN</option>
+                <option value="LSTM_CNN">LSTM_CNN</option>
+                <option value="GRU_CNN">GRU_CNN</option>
+            </select>
+            <button type="button" class="button", onclick="getData()">Predict</button>
+        </div>
+
+        <div id="plotly-chart", class="plotly-chart">
+            <div class="result", id="result"></div>
+        </div>
+
+    </div>
+
+    <script>
+    function getData() {
+
+        const selectedDate = document.getElementById("date-picker").value;
+        const selectedModel = document.getElementById("model_selection").value;
+
+        if (!selectedDate) {
+            alert("Please select a date.");
+            return;
+        }
+
+        $.ajax({
+            url: '/prediction',
+            type: 'GET',
+            data: { 'date': selectedDate, 'model_name': selectedModel},
+            success: function(response) {
+
+                let dates = response.dates;
+                let close_prices = response.close;
+
+                document.getElementById("result").innerText = "";
+
+                var data = [
+                    {
+                        x: dates.slice(0, -1),
+                        y: close_prices.slice(0, -1),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'S&P 500',
+                        marker: {
+                            color: 'blue',
+                            size: 8
+                        },
+                        line: {
+                            color: 'blue',
+                            width: 2
+                        }
+                    },
+                    {
+                        x: dates.slice(-1),
+                        y: close_prices.slice(-1),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Pred',
+                        marker: {
+                            color: 'red',
+                            size: 12
+                        },
+                        line: {
+                            color: 'red',
+                            width: 2
+                        }
+                    }
+                ];
+
+                Plotly.newPlot('plotly-chart', data, {
+                    title: 'Prediction and Historical Data'
+                });
+            },
+            error: function(xhr, error) {
+                let errorMsg = xhr.responseJSON ? xhr.responseJSON.error : "Unknown error";
+                Plotly.purge("plotly-chart");
+                document.getElementById("result").innerText = errorMsg;
+            }
+        });
+    }
+    </script>
+</body>
+</html>
